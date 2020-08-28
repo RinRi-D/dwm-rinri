@@ -1,0 +1,4 @@
+activetagindicator
+cool-autostart
+center
+fullgaps
