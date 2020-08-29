@@ -71,6 +71,7 @@ static const char *termcmd[]  = { "st", NULL };
 
 static Key keys[] = {
 	/* modifier                     key        function        argument */
+    { 0, Print,       spawn,      SHCMD("scrot") },
     { 0, XF86XK_PowerOff,       spawn,      SHCMD("~/scripts/poweroff.sh") },
     { 0, XF86XK_AudioMute,      spawn,      SHCMD("pulsemixer --toggle-mute") },
     { 0, XF86XK_AudioRaiseVolume,   spawn,      SHCMD("pulsemixer --change-volume +1") },
@@ -82,6 +83,7 @@ static Key keys[] = {
     { 0, XF86XK_AudioStop,      spawn,      SHCMD("cmus-remote --stop") },
     { 0, XF86XK_AudioRewind,    spawn,      SHCMD("cmus-remote --seek -10") },
     { 0, XF86XK_AudioForward,   spawn,      SHCMD("cmus-remote --seek +10") },
+    { MODKEY|ShiftMask, XK_space, togglealwaysontop, {0} },
     { MODKEY,                       XK_w,      spawn,          SHCMD("firefox") },
     { MODKEY|ShiftMask,             XK_l,      spawn,          SHCMD("xsecurelock") },
     { MODKEY|ShiftMask,             XK_m,      spawn,          SHCMD("st ~/scripts/autostart.sh") },

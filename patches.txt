@@ -1,4 +1,5 @@
 activetagindicator
+alwaysontop
 cool-autostart
 center
 fullgaps
