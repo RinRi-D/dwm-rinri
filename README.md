@@ -1,5 +1,7 @@
 # My dwm build
 
+![dwm-screen](dwm-screen.png)
+
 This my own patched and configured dwm build with following pathes:
 
 - alwaysontop

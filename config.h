@@ -71,7 +71,7 @@ static const char *termcmd[]  = { "st", NULL };
 
 static Key keys[] = {
 	/* modifier                     key        function        argument */
-    { 0, Print,       spawn,      SHCMD("scrot") },
+    { 0, XK_Print,       spawn,      SHCMD("scrot -e 'mv $f ~/Screenshots'") },
     { 0, XF86XK_PowerOff,       spawn,      SHCMD("~/scripts/poweroff.sh") },
     { 0, XF86XK_AudioMute,      spawn,      SHCMD("pulsemixer --toggle-mute") },
     { 0, XF86XK_AudioRaiseVolume,   spawn,      SHCMD("pulsemixer --change-volume +1") },
