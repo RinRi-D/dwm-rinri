@@ -18,7 +18,7 @@ static const char *const autostart[] = {
 };
 ```
 
-Also I use dunst notification manager, slstatus statusbar, picom compositor and font awesome. First, you need to install them. I recommend to install `ttf-font-awesome-4` from AUR, because icons are too small in font awesome 5.
+Also I use `dunst` notification manager, `slstatus` statusbar, `picom` compositor and font awesome. First, you need to install them. I recommend to install `ttf-font-awesome-4` from AUR, because icons are too small in font awesome 5.
 
 You can change config.def.h configuration and then run this commands to compile dwm:
 
