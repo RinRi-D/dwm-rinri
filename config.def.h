@@ -4,6 +4,7 @@
 static const unsigned int borderpx  = 2;        /* border pixel of windows */
 static const unsigned int gappx     = 15;
 static const unsigned int snap      = 32;       /* snap pixel */
+static const int swallowfloating    = 0;        /* 1 means swallow floating windows by default */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const char *fonts[]          = { "monospace:size=13", "fontawesome:size=15"};
@@ -37,6 +38,11 @@ static const Rule rules[] = {
 	/* class      instance    title       tags mask     iscentered   isfloating   monitor */
 	{ "Gimp",     NULL,       NULL,       0,            0,           1,           -1 },
 	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           0,           -1 },
+    /* class     instance  title           tags mask iscentered  isfloating  isterminal  noswallow  monitor */
+	{ "Gimp",    NULL,     NULL,           0,0,         1,          0,           0,        -1 },
+	{ "Firefox", NULL,     NULL,           1 << 8,0,    0,          0,          -1,        -1 },
+	{ "St",      NULL,     NULL,           0,0,         0,          1,           0,        -1 },
+	{ NULL,      NULL,     "Event Tester", 0,0,         0,          0,           1,        -1 }, /* xev */
 };
 
 /* layout(s) */
@@ -85,10 +91,10 @@ static Key keys[] = {
     { 0, XF86XK_AudioForward,   spawn,      SHCMD("cmus-remote --seek +10") },
     { MODKEY|ShiftMask, XK_space, togglealwaysontop, {0} },
     { MODKEY,                       XK_w,      spawn,          SHCMD("firefox") },
-    { MODKEY|ShiftMask,             XK_l,      spawn,          SHCMD("xsecurelock") },
+    { MODKEY|ShiftMask,             XK_l,      spawn,          SHCMD("slock") },
     { MODKEY|ShiftMask,             XK_m,      spawn,          SHCMD("st ~/scripts/autostart.sh") },
     { MODKEY|ShiftMask,             XK_j,      spawn,          SHCMD("joplin-desktop") },
-    { MODKEY|ShiftMask,             XK_s,      spawn,          SHCMD("spectacle -r") },
+    { MODKEY|ShiftMask,             XK_s,      spawn,          SHCMD("~/scripts/screenshot.sh 1") },
     { MODKEY|ShiftMask,             XK_n,      spawn,          SHCMD("connman-gtk") },	
     { MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
