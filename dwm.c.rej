@@ -1,38 +1,11 @@
 --- dwm.c
 +++ dwm.c
-@@ -98,9 +104,11 @@ struct Client {
- 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
- 	int bw, oldbw;
- 	unsigned int tags;
--	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
-+	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen, isterminal, noswallow;
-+	pid_t pid;
- 	Client *next;
- 	Client *snext;
-+	Client *swallowing;
- 	Monitor *mon;
- 	Window win;
- };
-@@ -314,6 +332,8 @@ applyrules(Client *c)
- 		&& (!r->class || strstr(class, r->class))
- 		&& (!r->instance || strstr(instance, r->instance)))
- 		{
-+			c->isterminal = r->isterminal;
-+			c->noswallow  = r->noswallow;
- 			c->isfloating = r->isfloating;
- 			c->tags |= r->tags;
- 			for (m = mons; m && m->num != r->monitor; m = m->next);
-@@ -2355,10 +2576,12 @@ main(int argc, char *argv[])
- 		fputs("warning: no locale support\n", stderr);
- 	if (!(dpy = XOpenDisplay(NULL)))
- 		die("dwm: cannot open display");
-+	if (!(xcon = XGetXCBConnection(dpy)))
-+		die("dwm: cannot get xcb connection\n");
- 	checkotherwm();
- 	setup();
- #ifdef __OpenBSD__
--	if (pledge("stdio rpath proc exec", NULL) == -1)
-+	if (pledge("stdio rpath proc exec ps", NULL) == -1)
- 		die("pledge");
- #endif /* __OpenBSD__ */
- 	scan();
+@@ -233,6 +233,8 @@ static int xerror(Display *dpy, XErrorEvent *ee);
+ static int xerrordummy(Display *dpy, XErrorEvent *ee);
+ static int xerrorstart(Display *dpy, XErrorEvent *ee);
+ static void zoom(const Arg *arg);
++static void centeredmaster(Monitor *m);
++static void centeredfloatingmaster(Monitor *m);
+ 
+ /* variables */
+ static const char broken[] = "broken";

@@ -2,4 +2,6 @@ activetagindicator
 alwaysontop
 cool-autostart
 center
+centeredmaster
 fullgaps
+swallow

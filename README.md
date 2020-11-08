@@ -7,6 +7,7 @@ This my own patched and configured dwm build with following pathes:
 - alwaysontop
 - cool-autostart
 - center
+- centeredmaster
 - fullgaps
 - swallow
 
