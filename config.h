@@ -7,7 +7,7 @@ static const unsigned int snap      = 32;       /* snap pixel */
 static const int swallowfloating    = 0;        /* 1 means swallow floating windows by default */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
-static const char *fonts[]          = { "monospace:size=13", "fontawesome:size=15"};
+static const char *fonts[]          = { "fontawesome:size=15", "DejaVuSansMono Nerd Font Mono:size=13"} ;
 static const char dmenufont[]       = "monospace:size=13";
 static const char col_gray1[]       = "#222222";
 static const char col_gray2[]       = "#444444";
@@ -79,7 +79,7 @@ static const char *termcmd[]  = { "st", NULL };
 
 static Key keys[] = {
 	/* modifier                     key        function        argument */
-    { 0, XK_Print,       spawn,      SHCMD("scrot -e 'mv $f ~/Screenshots'") },
+    { 0, XK_Print,       spawn,      SHCMD("~/scripts/screenshot.sh") },
     { 0, XF86XK_PowerOff,       spawn,      SHCMD("~/scripts/poweroff.sh") },
     { 0, XF86XK_AudioMute,      spawn,      SHCMD("pulsemixer --toggle-mute") },
     { 0, XF86XK_AudioRaiseVolume,   spawn,      SHCMD("pulsemixer --change-volume +1") },
@@ -91,13 +91,16 @@ static Key keys[] = {
     { 0, XF86XK_AudioStop,      spawn,      SHCMD("cmus-remote --stop") },
     { 0, XF86XK_AudioRewind,    spawn,      SHCMD("cmus-remote --seek -10") },
     { 0, XF86XK_AudioForward,   spawn,      SHCMD("cmus-remote --seek +10") },
+    { 0, XF86XK_MonBrightnessUp,   spawn,      SHCMD("brightnessctl s +5%")},
+    { 0, XF86XK_MonBrightnessDown, spawn,      SHCMD("brightnessctl s 5%-")},
     { MODKEY|ShiftMask, XK_space, togglealwaysontop, {0} },
     { MODKEY,                       XK_w,      spawn,          SHCMD("firefox") },
     { MODKEY|ShiftMask,             XK_l,      spawn,          SHCMD("slock") },
     { MODKEY|ShiftMask,             XK_m,      spawn,          SHCMD("st ~/scripts/autostart.sh") },
     { MODKEY|ShiftMask,             XK_j,      spawn,          SHCMD("joplin-desktop") },
     { MODKEY|ShiftMask,             XK_s,      spawn,          SHCMD("~/scripts/screenshot.sh 1") },
-    { MODKEY|ShiftMask,             XK_n,      spawn,          SHCMD("connman-gtk") },	
+    { MODKEY|ShiftMask,             XK_n,      spawn,          SHCMD("connman-gtk") },
+    { MODKEY|ShiftMask,             XK_x,      spawn,          SHCMD("mixer.sh") },
     { MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
