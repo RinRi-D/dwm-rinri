@@ -7,6 +7,14 @@ static const unsigned int snap      = 32;       /* snap pixel */
 static const int swallowfloating    = 0;        /* 1 means swallow floating windows by default */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
+
+/*   Display modes of the tab bar: never shown, always shown, shown only in */
+/*   monocle mode in presence of several windows.                           */
+/*   Modes after showtab_nmodes are disabled                                */
+enum showtab_modes { showtab_never, showtab_auto, showtab_nmodes, showtab_always};
+static const int showtab            = showtab_auto; /* Default tab bar show mode */
+static const Bool toptab            = False;    /* False means bottom tab bar */
+
 static const char *fonts[]          = { "fontawesome:size=15", "DejaVuSansMono Nerd Font Mono:size=13"} ;
 static const char dmenufont[]       = "monospace:size=13";
 static const char col_gray1[]       = "#222222";
@@ -22,27 +30,30 @@ static const char *colors[][3]      = {
 
 static const char *const autostart[] = {
 	"sh", "-c", "sh ~/scripts/xinit.sh", NULL,
-    "dunst", NULL,
-    "slstatus", NULL,
 	NULL /* terminate */
 };
 
 /* tagging */
 static const char *tags[] = { "", "", "", "", "", "", "", "", "" };
 
+/* default layout per tags */
+/* The first element is for all-tag view, following i-th element corresponds to */
+/* tags[i]. Layout is referred using the layouts array index.*/
+static int def_layouts[1 + LENGTH(tags)]  = { 0, 0, 0, 0, 0, 0, 2, 0, 2, 2};
+
+
 static const Rule rules[] = {
 	/* xprop(1):
 	 *	WM_CLASS(STRING) = instance, class
 	 *	WM_NAME(STRING) = title
 	 */
-	/* class      instance    title       tags mask     iscentered   isfloating   monitor */
-	{ "Gimp",     NULL,       NULL,       0,            0,           1,           -1 },
-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           0,           -1 },
-    /* class     instance  title           tags mask iscentered  isfloating  isterminal  noswallow  monitor */
-	{ "Gimp",    NULL,     NULL,           0,0,         1,          0,           0,        -1 },
-	{ "Firefox", NULL,     NULL,           1 << 8,0,    0,          0,          -1,        -1 },
-	{ "St",      NULL,     NULL,           0,0,         0,          1,           0,        -1 },
-	{ NULL,      NULL,     "Event Tester", 0,0,         0,          0,           1,        -1 }, /* xev */
+
+    /* class       instance  title           tags mask  iscentered  isfloating  isterminal  noswallow  monitor */
+	{ "Gimp",      NULL,     NULL,           1 << 7,    0,          1,          0,           0,        -1 },
+	{ "LibreWolf", NULL,     NULL,           1 << 0,    0,          0,          0,          -1,        -1 },
+	{ "firefox",   NULL,     NULL,           1 << 0,    0,          0,          0,          -1,        -1 },
+	{ "St",        NULL,     NULL,           0,         0,          0,          1,           0,        -1 },
+	{ NULL,        NULL,     "Event Tester", 0,         0,          0,          0,           1,        -1 }, /* xev */
 };
 
 /* layout(s) */
@@ -82,8 +93,8 @@ static Key keys[] = {
     { 0, XK_Print,       spawn,      SHCMD("~/scripts/screenshot.sh") },
     { 0, XF86XK_PowerOff,       spawn,      SHCMD("~/scripts/poweroff.sh") },
     { 0, XF86XK_AudioMute,      spawn,      SHCMD("pulsemixer --toggle-mute") },
-    { 0, XF86XK_AudioRaiseVolume,   spawn,      SHCMD("pulsemixer --change-volume +1") },
-    { 0, XF86XK_AudioLowerVolume,   spawn,      SHCMD("pulsemixer --change-volume -1") },
+    { 0, XF86XK_AudioRaiseVolume,   spawn,      SHCMD("amixer -c 1 sset Master 1+") },
+    { 0, XF86XK_AudioLowerVolume,   spawn,      SHCMD("amixer -c 1 sset Master 1-") },
     { 0, XF86XK_AudioPrev,      spawn,      SHCMD("cmus-remote --prev") },
     { 0, XF86XK_AudioNext,      spawn,      SHCMD("cmus-remote --next") },
     { 0, XF86XK_AudioPause,     spawn,      SHCMD("cmus-remote --pause") },
@@ -104,6 +115,7 @@ static Key keys[] = {
     { MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
+	{ MODKEY,                       XK_w,      tabmode,        {-1} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
@@ -156,5 +168,6 @@ static Button buttons[] = {
 	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
 	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
 	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
+	{ ClkTabBar,            0,              Button1,        focuswin,       {0} },
 };
 

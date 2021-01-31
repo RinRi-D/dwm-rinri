@@ -1,0 +1,233 @@
+--- dwm.c
++++ dwm.c
+@@ -112,25 +112,35 @@ typedef struct {
+ 	void (*arrange)(Monitor *);
+ } Layout;
+ 
++#define MAXTABS 50
++
++typedef struct Pertag Pertag;
+ struct Monitor {
+ 	char ltsymbol[16];
+ 	float mfact;
+ 	int nmaster;
+ 	int num;
+ 	int by;               /* bar geometry */
++	int ty;               /* tab bar geometry */
+ 	int mx, my, mw, mh;   /* screen size */
+ 	int wx, wy, ww, wh;   /* window area  */
+ 	unsigned int seltags;
+ 	unsigned int sellt;
+ 	unsigned int tagset[2];
+ 	int showbar;
++	int showtab;
+ 	int topbar;
++	int toptab;
+ 	Client *clients;
+ 	Client *sel;
+ 	Client *stack;
+ 	Monitor *next;
+ 	Window barwin;
++	Window tabwin;
++	int ntabs;
++	int tab_widths[MAXTABS];
+ 	const Layout *lt[2];
++	Pertag *pertag;
+ };
+ 
+ typedef struct {
+@@ -461,14 +488,33 @@ buttonpress(XEvent *e)
+ 			click = ClkStatusText;
+ 		else
+ 			click = ClkWinTitle;
+-	} else if ((c = wintoclient(ev->window))) {
++	}
++	if(ev->window == selmon->tabwin) {
++		i = 0; x = 0;
++		for(c = selmon->clients; c; c = c->next){
++		  if(!ISVISIBLE(c)) continue;
++		  x += selmon->tab_widths[i];
++		  if (ev->x > x)
++		    ++i;
++		  else
++		    break;
++		  if(i >= m->ntabs) break;
++		}
++		if(c) {
++		  click = ClkTabBar;
++		  arg.ui = i;
++		}
++	}
++	else if((c = wintoclient(ev->window))) {
+ 		focus(c);
+ 		click = ClkClientWin;
+ 	}
+-	for (i = 0; i < LENGTH(buttons); i++)
+-		if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
+-		&& CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state))
+-			buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
++	for(i = 0; i < LENGTH(buttons); i++)
++		if(click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
++		   && CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state)){
++		  buttons[i].func(((click == ClkTagBar || click == ClkTabBar)
++				   && buttons[i].arg.i == 0) ? &arg : &buttons[i].arg);
++		}
+ }
+ 
+ void
+@@ -556,6 +605,8 @@ clientmessage(XEvent *e)
+ 		if (!ISVISIBLE(c)) {
+ 			c->mon->seltags ^= 1;
+ 			c->mon->tagset[c->mon->seltags] = c->tags;
++			for(i=0; !(c->tags & 1 << i); i++);
++			view(&(Arg){.ui = 1 << i});
+ 		}
+ 		pop(c);
+ 	}
+@@ -662,16 +711,41 @@ Monitor *
+ createmon(void)
+ {
+ 	Monitor *m;
++	int i;
+ 
+ 	m = ecalloc(1, sizeof(Monitor));
+ 	m->tagset[0] = m->tagset[1] = 1;
+ 	m->mfact = mfact;
+ 	m->nmaster = nmaster;
+ 	m->showbar = showbar;
++	m->showtab = showtab;
+ 	m->topbar = topbar;
+-	m->lt[0] = &layouts[0];
++	m->toptab = toptab;
++	m->ntabs = 0;
++	m->lt[0] = &layouts[def_layouts[1] % LENGTH(layouts)];
+ 	m->lt[1] = &layouts[1 % LENGTH(layouts)];
+ 	strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
++	if(!(m->pertag = (Pertag *)calloc(1, sizeof(Pertag))))
++		die("fatal: could not malloc() %u bytes\n", sizeof(Pertag));
++	m->pertag->curtag = m->pertag->prevtag = 1;
++	for(i=0; i <= LENGTH(tags); i++) {
++		/* init nmaster */
++		m->pertag->nmasters[i] = m->nmaster;
++
++		/* init mfacts */
++		m->pertag->mfacts[i] = m->mfact;
++
++		/* init layouts */
++		m->pertag->ltidxs[i][0] = &layouts[def_layouts[i % LENGTH(def_layouts)] % LENGTH(layouts)];
++		m->pertag->ltidxs[i][1] = m->lt[1];
++		m->pertag->sellts[i] = m->sellt;
++
++		/* init showbar */
++		m->pertag->showbars[i] = m->showbar;
++
++		/* swap focus and zoomswap*/
++		m->pertag->prevzooms[i] = NULL;
++	}
+ 	return m;
+ }
+ 
+@@ -1294,11 +1482,13 @@ movemouse(const Arg *arg)
+ 		return;
+ 	if (c->isfullscreen) /* no support moving fullscreen windows by mouse */
+ 		return;
++	if(c->isfullscreen) /* no support moving fullscreen windows by mouse */
++		return;
+ 	restack(selmon);
+ 	ocx = c->x;
+ 	ocy = c->y;
+ 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
+-	None, cursor[CurMove]->cursor, CurrentTime) != GrabSuccess)
++			 None, cursor[CurMove]->cursor, CurrentTime) != GrabSuccess)
+ 		return;
+ 	if (!getrootptr(&x, &y))
+ 		return;
+@@ -1454,11 +1646,13 @@ resizemouse(const Arg *arg)
+ 		return;
+ 	if (c->isfullscreen) /* no support resizing fullscreen windows by mouse */
+ 		return;
++	if(c->isfullscreen) /* no support resizing fullscreen windows by mouse */
++		return;
+ 	restack(selmon);
+ 	ocx = c->x;
+ 	ocy = c->y;
+ 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
+-	                None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
++			 None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
+ 		return;
+ 	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
+ 	do {
+@@ -1615,11 +1810,11 @@ sendevent(Client *c, Atom proto)
+ void
+ setfocus(Client *c)
+ {
+-	if (!c->neverfocus) {
++	if(!c->neverfocus) {
+ 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
+ 		XChangeProperty(dpy, root, netatom[NetActiveWindow],
+-		                XA_WINDOW, 32, PropModeReplace,
+-		                (unsigned char *) &(c->win), 1);
++ 		                XA_WINDOW, 32, PropModeReplace,
++ 		                (unsigned char *) &(c->win), 1);
+ 	}
+ 	sendevent(c, wmatom[WMTakeFocus]);
+ }
+@@ -1978,20 +2208,44 @@ updatebars(void)
+ 		                          CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
+ 		XDefineCursor(dpy, m->barwin, cursor[CurNormal]->cursor);
+ 		XMapRaised(dpy, m->barwin);
++		m->tabwin = XCreateWindow(dpy, root, m->wx, m->ty, m->ww, th, 0, DefaultDepth(dpy, screen),
++					  CopyFromParent, DefaultVisual(dpy, screen),
++					  CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
++		XDefineCursor(dpy, m->tabwin, cursor[CurNormal]->cursor);
++		XMapRaised(dpy, m->tabwin);
+ 	}
+ }
+ 
+ void
+ updatebarpos(Monitor *m)
+ {
++	Client *c;
++	int nvis = 0;
++	
+ 	m->wy = m->my;
+ 	m->wh = m->mh;
+ 	if (m->showbar) {
+ 		m->wh -= bh;
+ 		m->by = m->topbar ? m->wy : m->wy + m->wh;
+-		m->wy = m->topbar ? m->wy + bh : m->wy;
+-	} else
++		if ( m->topbar )
++			m->wy += bh;
++	} else {
+ 		m->by = -bh;
++	}
++
++	for(c = m->clients; c; c = c->next){
++	  if(ISVISIBLE(c)) ++nvis;
++	}
++
++	if(m->showtab == showtab_always
++	   || ((m->showtab == showtab_auto) && (nvis > 1) && (m->lt[m->sellt]->arrange == monocle))){
++		m->wh -= th;
++		m->ty = m->toptab ? m->wy : m->wy + m->wh;
++		if ( m->toptab )
++			m->wy += th;
++	} else {
++		m->ty = -th;
++	}
+ }
+ 
+ void
+@@ -2173,9 +2427,9 @@ updatewindowtype(Client *c)
+ 	Atom wtype = getatomprop(c, netatom[NetWMWindowType]);
+ 
+ 	if (state == netatom[NetWMFullscreen])
+-		setfullscreen(c, 1);
++		setfullscreen(c, True);
+ 	if (wtype == netatom[NetWMWindowTypeDialog])
+-		c->isfloating = 1;
++		c->isfloating = True;
+ }
+ 
+ void
