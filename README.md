@@ -1,8 +1,8 @@
 # My dwm build
 
-![dwm-screen](dwm-screen.png)
+![dwm-screen](dwm-screen.jpg)
 
-This my own patched and configured dwm build with following pathes:
+Patches:
 
 - alwaysontop
 - cool-autostart
@@ -11,7 +11,7 @@ This my own patched and configured dwm build with following pathes:
 - fullgaps
 - swallow
 
-You can define autostarting programs in:
+Autostart:
 
 ```c
 static const char *const autostart[] = {
@@ -22,16 +22,16 @@ static const char *const autostart[] = {
 };
 ```
 
-Also I use `dunst` notification manager, `slstatus` statusbar, `picom` compositor and font awesome. First, you need to install them. I recommend installing `ttf-font-awesome-4` from AUR, because icons are too small in font awesome 5.
+I use `dunst` notification manager, `slstatus` statusbar, `picom` and font awesome. Install them first. I recommend to install `ttf-font-awesome-4` from AUR if your icons look small.
 
-You can change config.def.h configuration and then run this commands to compile dwm:
+Build:
 
 ```bash
 cp config.def.h config.h
 sudo make install
 ```
 
-Here is dwm's README:
+dwm's README:
 
 # dwm - dynamic windows manager
 
