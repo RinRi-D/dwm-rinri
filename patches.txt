@@ -5,3 +5,9 @@ center
 centeredmaster
 fullgaps
 swallow
+notitle
+rainbowtags
+statuspadding
+underlinetags
+pertag
+barpadding
