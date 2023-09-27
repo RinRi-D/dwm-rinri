@@ -64,7 +64,7 @@
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
 
 /* enums */
-enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+enum { CurNormal, CurResize, CurMove, CurHand, CurLast }; /* cursor */
 enum { SchemeNorm, SchemeSel, SchemeDis}; /* color schemes */
 enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
@@ -280,6 +280,8 @@ static int sw, sh;           /* X display screen geometry width, height */
 static int bh, blw = 0;      /* bar geometry */
 static int th = 0;           /* tab bar geometry */
 static int lrpad;            /* sum of left and right padding for text */
+static int vp;               /* vertical padding for bar */
+static int sp;               /* side padding for bar */
 static int (*xerrorxlib)(Display *, XErrorEvent *);
 static unsigned int numlockmask = 0;
 static void (*handler[LASTEvent]) (XEvent *) = {
@@ -718,7 +720,7 @@ configurenotify(XEvent *e)
 			//refreshing display of status bar. The tab bar is handled by the arrange()
 			//method, which is called below
 			for (m = mons; m; m = m->next){
-				XMoveResizeWindow(dpy, m->barwin, m->wx, m->by, m->ww, bh);
+				XMoveResizeWindow(dpy, m->barwin, m->wx + sp, m->by + vp, m->ww -  2 * sp, bh);
 			}
 			focus(NULL);
 			arrange(NULL);
@@ -911,12 +913,12 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 	text = p;
 
     w += horizpadbar;
-    ret = x = m->ww - borderpx - w;
+    ret = x = m->ww - borderpx - w - 2 * sp;
 
 	drw_setscheme(drw, scheme[LENGTH(colors)]);
 	drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
 	drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
-	drw_rect(drw, x, borderpx, w, bh, 1, 1);
+	drw_rect(drw, x, borderpx, w - 2 * sp, bh, 1, 1);
 	x += horizpadbar / 2;
 
 	/* process status text */
@@ -1014,12 +1016,12 @@ drawbar(Monitor *m)
 		x += w;
 	}
 	w = blw = TEXTW(m->ltsymbol);
-	drw_setscheme(drw, scheme[SchemeNorm]);
+	drw_setscheme(drw, scheme[SchemeDis]);
     x = drw_text(drw, x, y, w, th, lrpad / 2, m->ltsymbol, 0);
 
     if ((w = mw - sw - stw - x) > th) {
 		drw_setscheme(drw, scheme[SchemeNorm]);
-        drw_rect(drw, x, y, w, th, 1, 1);
+        drw_rect(drw, x, y, w - 2 * sp, th, 1, 1);
 	}
 	drw_map(drw, m->barwin, 0, 0, m->ww, bh);
 }
@@ -1060,7 +1062,7 @@ drawtab(Monitor *m) {
 	int sorted_label_widths[MAXTABS];
 	int tot_width;
 	int maxsize = bh;
-	int x = 0;
+	int x = borderpx, y = borderpx;
 	int w = 0;
 
 	//view_info: indicate the tag which is displayed in the view
@@ -1112,7 +1114,7 @@ drawtab(Monitor *m) {
 	  if(m->tab_widths[i] >  maxsize) m->tab_widths[i] = maxsize;
 	  w = m->tab_widths[i];
 	  drw_setscheme(drw, (c == m->sel) ? scheme[SchemeSel] : scheme[SchemeNorm]);
-	  drw_text(drw, x, 0, w, th, lrpad / 2, c->name, 0);
+	  drw_text(drw, x, y, w, th - borderpx * 2, lrpad / 2, c->name, 0);
 	  x += w;
 	  ++i;
 	}
@@ -1121,12 +1123,12 @@ drawtab(Monitor *m) {
 
 	/* cleans interspace between window names and current viewed tag label */
 	w = m->ww - view_info_w - x;
-	drw_text(drw, x, 0, w, th, lrpad / 2, "", 0);
+	drw_text(drw, x, y, w, th - borderpx * 2, lrpad / 2, "", 0);
 
 	/* view info */
 	x += w;
 	w = view_info_w;
-	drw_text(drw, x, 0, w, th, lrpad / 2, view_info, 0);
+	drw_text(drw, x, y, w, th - borderpx * 2, lrpad / 2, view_info, 0);
 
 	drw_map(drw, m->tabwin, 0, 0, m->ww, th);
 }
@@ -1987,6 +1989,9 @@ setup(void)
     bh = user_bh ? user_bh : drw->fonts->h + 2 + vertpadbar + borderpx * 2;
 	th = bh;
 	updategeom();
+	sp = sidepad;
+	vp = (topbar == 1) ? vertpad : - vertpad;
+
 	/* init atoms */
 	utf8string = XInternAtom(dpy, "UTF8_STRING", False);
 	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
@@ -2006,6 +2011,7 @@ setup(void)
 	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
 	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
 	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
+	cursor[CurHand] = drw_cur_create(drw, XC_hand2);
 	/* init appearance */
 	if (LENGTH(tags) > LENGTH(tagsel))
 		die("too few color schemes for the tags");
@@ -2020,6 +2026,7 @@ setup(void)
 	/* init bars */
 	updatebars();
 	updatestatus();
+	updatebarpos(selmon);
 	/* supporting window for NetWMCheck */
 	wmcheckwin = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
 	XChangeProperty(dpy, wmcheckwin, netatom[NetWMCheck], XA_WINDOW, 32,
@@ -2164,7 +2171,7 @@ togglebar(const Arg *arg)
 {
 	selmon->showbar = selmon->pertag->showbars[selmon->pertag->curtag] = !selmon->showbar;
 	updatebarpos(selmon);
-	XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
+	XMoveResizeWindow(dpy, selmon->barwin, selmon->wx + sp, selmon->by + vp, selmon->ww - 2 * sp, bh);
 	arrange(selmon);
 }
 
@@ -2346,18 +2353,20 @@ updatebars(void)
 	};
 	XClassHint ch = {"dwm", "dwm"};
 	for (m = mons; m; m = m->next) {
-		if (m->barwin)
-			continue;
-		m->barwin = XCreateWindow(dpy, root, m->wx, m->by, m->ww, bh, 0, DefaultDepth(dpy, screen),
-				CopyFromParent, DefaultVisual(dpy, screen),
-				CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
-		XDefineCursor(dpy, m->barwin, cursor[CurNormal]->cursor);
-		XMapRaised(dpy, m->barwin);
-        m->tabwin = XCreateWindow(dpy, root, m->wx, m->ty, m->ww, th, 0, DefaultDepth(dpy, screen),
+        if (!m->tabwin) {
+            m->tabwin = XCreateWindow(dpy, root, m->wx + sp, m->ty + (m->toptab ? vp : -vp), m->ww - 2 * sp, th, 0, DefaultDepth(dpy, screen),
 					  CopyFromParent, DefaultVisual(dpy, screen),
 					  CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
-		XDefineCursor(dpy, m->tabwin, cursor[CurNormal]->cursor);
-		XMapRaised(dpy, m->tabwin);
+		    XDefineCursor(dpy, m->tabwin, cursor[CurNormal]->cursor);
+		    XMapRaised(dpy, m->tabwin);
+        }
+		if (m->barwin)
+			continue;
+		m->barwin = XCreateWindow(dpy, root, m->wx + sp, m->by + vp, m->ww - 2 * sp, bh, 0, DefaultDepth(dpy, screen),
+				CopyFromParent, DefaultVisual(dpy, screen),
+				CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
+		XDefineCursor(dpy, m->barwin, cursor[CurHand]->cursor);
+		XMapRaised(dpy, m->barwin);
 		XSetClassHint(dpy, m->barwin, &ch);
 	}
 }
@@ -2371,12 +2380,12 @@ updatebarpos(Monitor *m)
     m->wy = m->my;
 	m->wh = m->mh;
 	if (m->showbar) {
-		m->wh -= bh;
-		m->by = m->topbar ? m->wy : m->wy + m->wh;
+		m->wh = m->wh - vertpad - bh;
+		m->by = m->topbar ? m->wy : m->wy + m->wh + vertpad;
 		if ( m->topbar )
-			m->wy += bh;
+			m->wy += bh + vp;
     } else {
-        m->by = -bh;
+        m->by = -bh - vp;
     }
 
 	for(c = m->clients; c; c = c->next){
@@ -2385,12 +2394,12 @@ updatebarpos(Monitor *m)
 
 	if(m->showtab == showtab_always
 	   || ((m->showtab == showtab_auto) && (nvis > 1) && (m->lt[m->sellt]->arrange == monocle))){
-		m->wh -= th;
-		m->ty = m->toptab ? m->wy : m->wy + m->wh;
+		m->wh = m->wh - vertpad - th;
+		m->ty = m->toptab ? m->wy : m->wy + m->wh + vertpad;
 		if ( m->toptab )
-			m->wy += th;
+			m->wy += th + vp;
 	} else {
-		m->ty = -th;
+		m->ty = -th - vp;
 	}
 }
 

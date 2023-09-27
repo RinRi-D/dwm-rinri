@@ -20,13 +20,13 @@ enum showtab_modes { showtab_never, showtab_auto, showtab_nmodes, showtab_always
 static const int showtab            = showtab_auto; /* Default tab bar show mode */
 static const Bool toptab            = False;    /* False means bottom tab bar */
 
-static const char *fonts[]          = { "fontawesome:size=15", "DejaVuSansMono Nerd Font Mono:size=13"} ;
-static const char col_gray1[]       = "#222222";
+static const char *fonts[]          = { "fontawesome:size=15", "DejaVuSansM Nerd Font:size=13"};
+static const char col_gray1[]       = "#1e1e2e";
 static const char col_gray2[]       = "#666666";
 static const char col_gray3[]       = "#bbbbbb";
 static const char col_gray4[]       = "#eeeeee";
 static const char col_cyan[]        = "#7733ee";
-static const char col_borderbar[]   = "#222222";
+static const char col_borderbar[]   = "#1e1e2e";
 static const char *colors[][3]      = {
 	/*                  fg         bg         border   */
 	[SchemeNorm]    = { col_gray3, col_gray1, col_gray2 },
@@ -73,11 +73,13 @@ static const Rule rules[] = {
 
     /* class                 instance  title           tags mask  iscentered  isfloating  isterminal  noswallow  monitor */
 	{ "Gimp",                NULL,     NULL,           1 << 7,    0,          1,          0,           0,        -1 },
+	{ "librewolf",           NULL,     NULL,           1 << 2,    0,          0,          0,          -1,        -1 },
 	{ "LibreWolf",           NULL,     NULL,           1 << 2,    0,          0,          0,          -1,        -1 },
 	{ "firefox",             NULL,     NULL,           1 << 2,    0,          0,          0,          -1,        -1 },
 	{ "Brave-browser",       NULL,     NULL,           1 << 2,    0,          0,          0,          -1,        -1 },
 	{ "St",                  NULL,     NULL,           0,         0,          0,          1,           0,        -1 },
-    { "zoom",                NULL,     NULL,           1 << 1,    0,          0,          0,          -1,        -1 },
+    { NULL,                  NULL,     "Zoom Meeting", 1 << 1,    0,          1,          0,          -1,        -1 },
+    { NULL,                  NULL,     "Zoom Cloud Meetings", 1 << 1,    0,          1,          0,          -1,        -1 },
     { "cmus",                NULL,     NULL,           1 << 3,    0,          0,          0,          -1,        -1 },
 	{ "TelegramDesktop",     NULL,     NULL,           1 << 4,    0,          0,          0,          -1,        -1 },
 	{ "Discord",             NULL,     NULL,           1 << 4,    0,          0,          0,          -1,        -1 },
@@ -122,31 +124,32 @@ static Key keys[] = {
 	/* modifier                     key                         function            argument */
     { 0,                            XK_Print,                   spawn,              SHCMD("~/scripts/screenshot.sh") },
     { 0,                            XF86XK_PowerOff,            spawn,              SHCMD("~/scripts/poweroff.sh") },
-    { 0,                            XF86XK_AudioMute,           spawn,              SHCMD("pulsemixer --toggle-mute") },
+    { 0,                            XF86XK_AudioMute,           spawn,              SHCMD("~/scripts/mute.sh 1") },
     { 0,                            XF86XK_AudioRaiseVolume,    spawn,              SHCMD("amixer set Master 1%+") },
     { 0,                            XF86XK_AudioLowerVolume,    spawn,              SHCMD("amixer set Master 1%-") },
-    { 0,                            XF86XK_AudioPrev,           spawn,              SHCMD("cmus-remote --prev") },
-    { 0,                            XF86XK_AudioNext,           spawn,              SHCMD("cmus-remote --next") },
-    { 0,                            XF86XK_AudioPause,          spawn,              SHCMD("cmus-remote --pause") },
-    { 0,                            XF86XK_AudioPlay,           spawn,              SHCMD("cmus-remote --pause") },
-    { 0,                            XF86XK_AudioStop,           spawn,              SHCMD("cmus-remote --stop") },
-    { 0,                            XF86XK_AudioRewind,         spawn,              SHCMD("cmus-remote --seek -10") },
-    { 0,                            XF86XK_AudioForward,        spawn,              SHCMD("cmus-remote --seek +10") },
+    { 0,                            XF86XK_AudioPrev,           spawn,              SHCMD("~/scripts/playmus.sh 3") },
+    { 0,                            XF86XK_AudioNext,           spawn,              SHCMD("~/scripts/playmus.sh 2") },
+    { 0,                            XF86XK_AudioPause,          spawn,              SHCMD("~/scripts/playmus.sh 1") },
+    { 0,                            XF86XK_AudioPlay,           spawn,              SHCMD("~/scripts/playmus.sh 1") },
+    { 0,                            XF86XK_AudioStop,           spawn,              SHCMD("~/scripts/playmus.sh 1") },
     { 0,                            XF86XK_MonBrightnessUp,     spawn,              SHCMD("brightnessctl s +5%")},
     { 0,                            XF86XK_MonBrightnessDown,   spawn,              SHCMD("brightnessctl s 5%-")},
-    { ControlMask,                  XK_space,                   spawn,              SHCMD("dunstctl close") },
-    { ControlMask|ShiftMask,        XK_space,                   spawn,              SHCMD("dunstctl close-all") },
+    { ControlMask|ShiftMask,        XK_space,                   spawn,              SHCMD("dunstctl close") },
+    { Mod1Mask|ShiftMask,           NULL,                       spawn,              SHCMD("~/scripts/switch-input.sh") },
     { MODKEY|ShiftMask,             XK_space,                   togglealwaysontop,  {0} },
-    { MODKEY,                       XK_w,                       spawn,              SHCMD("firefox") },
+    { MODKEY,                       XK_w,                       spawn,              SHCMD("librewolf") },
     { MODKEY,                       XK_c,                       spawn,              SHCMD("~/scripts/showcal.sh") },
     { MODKEY|ShiftMask,             XK_l,                       spawn,              SHCMD("slock.sh") },
+    { MODKEY|ShiftMask,             XK_d,                       spawn,              SHCMD("killall Discord") },
     { MODKEY|ShiftMask,             XK_e,                       spawn,              SHCMD("emacsclient --create-frame") },
     { MODKEY|ShiftMask,             XK_m,                       spawn,              SHCMD("~/scripts/autostart.sh") },
     { MODKEY|ShiftMask,             XK_j,                       spawn,              SHCMD("screenkey.sh") },
+    { MODKEY|ShiftMask,             XK_k,                       spawn,              SHCMD("killall screenkey") },
     { MODKEY|ShiftMask,             XK_s,                       spawn,              SHCMD("~/scripts/screenshot.sh 1") },
     { MODKEY|ShiftMask,             XK_n,                       spawn,              SHCMD("~/scripts/network.sh") },
     { MODKEY|ShiftMask,             XK_x,                       spawn,              SHCMD("mixer.sh") },
     { MODKEY|ShiftMask,             XK_t,                       spawn,              SHCMD("telegram-desktop") },
+    { MODKEY|ShiftMask,             XK_a,                       spawn,              SHCMD("~/scripts/start-jack.sh 1") },
     { MODKEY,                       XK_p,                       spawn,              {.v = dmenucmd } },
 	{ MODKEY|ShiftMask,             XK_Return,                  spawn,              {.v = termcmd } },
 	{ MODKEY,                       XK_b,                       togglebar,          {0} },
@@ -167,6 +170,7 @@ static Key keys[] = {
 	{ MODKEY,                       XK_o,                       setlayout,          {.v = &layouts[4]} },
 	{ MODKEY,                       XK_space,                   setlayout,          {0} },
 	{ MODKEY|ShiftMask,             XK_space,                   togglefloating,     {0} },
+	{ MODKEY|ShiftMask,             XK_f,                       togglefullscr,      {0} },
 	{ MODKEY,                       XK_0,                       view,               {.ui = ~0 } },
 	{ MODKEY|ShiftMask,             XK_0,                       tag,                {.ui = ~0 } },
 	{ MODKEY,                       XK_comma,                   focusmon,           {.i = -1 } },

@@ -64,7 +64,7 @@
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
 
 /* enums */
-enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+enum { CurNormal, CurResize, CurMove, CurHand, CurLast }; /* cursor */
 enum { SchemeNorm, SchemeSel, SchemeDis}; /* color schemes */
 enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
@@ -239,6 +239,7 @@ static void tagmon(const Arg *arg);
 static void tile(Monitor *);
 static void togglebar(const Arg *arg);
 static void togglefloating(const Arg *arg);
+static void togglefullscr(const Arg *arg);
 static void togglealwaysontop(const Arg *arg);
 static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
@@ -1016,7 +1017,7 @@ drawbar(Monitor *m)
 		x += w;
 	}
 	w = blw = TEXTW(m->ltsymbol);
-	drw_setscheme(drw, scheme[SchemeNorm]);
+	drw_setscheme(drw, scheme[SchemeDis]);
     x = drw_text(drw, x, y, w, th, lrpad / 2, m->ltsymbol, 0);
 
     if ((w = mw - sw - stw - x) > th) {
@@ -1062,7 +1063,7 @@ drawtab(Monitor *m) {
 	int sorted_label_widths[MAXTABS];
 	int tot_width;
 	int maxsize = bh;
-	int x = 0;
+	int x = borderpx, y = borderpx;
 	int w = 0;
 
 	//view_info: indicate the tag which is displayed in the view
@@ -1114,7 +1115,7 @@ drawtab(Monitor *m) {
 	  if(m->tab_widths[i] >  maxsize) m->tab_widths[i] = maxsize;
 	  w = m->tab_widths[i];
 	  drw_setscheme(drw, (c == m->sel) ? scheme[SchemeSel] : scheme[SchemeNorm]);
-	  drw_text(drw, x, 0, w, th, lrpad / 2, c->name, 0);
+	  drw_text(drw, x, y, w, th - borderpx * 2, lrpad / 2, c->name, 0);
 	  x += w;
 	  ++i;
 	}
@@ -1123,12 +1124,12 @@ drawtab(Monitor *m) {
 
 	/* cleans interspace between window names and current viewed tag label */
 	w = m->ww - view_info_w - x;
-	drw_text(drw, x, 0, w, th, lrpad / 2, "", 0);
+	drw_text(drw, x, y, w, th - borderpx * 2, lrpad / 2, "", 0);
 
 	/* view info */
 	x += w;
 	w = view_info_w;
-	drw_text(drw, x, 0, w, th, lrpad / 2, view_info, 0);
+	drw_text(drw, x, y, w, th - borderpx * 2, lrpad / 2, view_info, 0);
 
 	drw_map(drw, m->tabwin, 0, 0, m->ww, th);
 }
@@ -2011,6 +2012,7 @@ setup(void)
 	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
 	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
 	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
+	cursor[CurHand] = drw_cur_create(drw, XC_hand2);
 	/* init appearance */
 	if (LENGTH(tags) > LENGTH(tagsel))
 		die("too few color schemes for the tags");
@@ -2226,6 +2228,13 @@ togglealwaysontop(const Arg *arg)
 }
 
 void
+togglefullscr(const Arg *arg)
+{
+  if(selmon->sel)
+    setfullscreen(selmon->sel, !selmon->sel->isfullscreen);
+}
+
+void
 toggletag(const Arg *arg)
 {
 	unsigned int newtags;
@@ -2352,18 +2361,20 @@ updatebars(void)
 	};
 	XClassHint ch = {"dwm", "dwm"};
 	for (m = mons; m; m = m->next) {
+        if (!m->tabwin) {
+            m->tabwin = XCreateWindow(dpy, root, m->wx + sp, m->ty + (m->toptab ? vp : -vp), m->ww - 2 * sp, th, 0, DefaultDepth(dpy, screen),
+					  CopyFromParent, DefaultVisual(dpy, screen),
+					  CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
+		    XDefineCursor(dpy, m->tabwin, cursor[CurNormal]->cursor);
+		    XMapRaised(dpy, m->tabwin);
+        }
 		if (m->barwin)
 			continue;
 		m->barwin = XCreateWindow(dpy, root, m->wx + sp, m->by + vp, m->ww - 2 * sp, bh, 0, DefaultDepth(dpy, screen),
 				CopyFromParent, DefaultVisual(dpy, screen),
 				CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
-		XDefineCursor(dpy, m->barwin, cursor[CurNormal]->cursor);
+		XDefineCursor(dpy, m->barwin, cursor[CurHand]->cursor);
 		XMapRaised(dpy, m->barwin);
-        m->tabwin = XCreateWindow(dpy, root, m->wx, m->ty, m->ww, th, 0, DefaultDepth(dpy, screen),
-					  CopyFromParent, DefaultVisual(dpy, screen),
-					  CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
-		XDefineCursor(dpy, m->tabwin, cursor[CurNormal]->cursor);
-		XMapRaised(dpy, m->tabwin);
 		XSetClassHint(dpy, m->barwin, &ch);
 	}
 }
@@ -2391,12 +2402,12 @@ updatebarpos(Monitor *m)
 
 	if(m->showtab == showtab_always
 	   || ((m->showtab == showtab_auto) && (nvis > 1) && (m->lt[m->sellt]->arrange == monocle))){
-		m->wh -= th;
-		m->ty = m->toptab ? m->wy : m->wy + m->wh;
+		m->wh = m->wh - vertpad - th;
+		m->ty = m->toptab ? m->wy : m->wy + m->wh + vertpad;
 		if ( m->toptab )
-			m->wy += th;
+			m->wy += th + vp;
 	} else {
-		m->ty = -th;
+		m->ty = -th - vp;
 	}
 }
 
